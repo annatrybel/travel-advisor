@@ -1,0 +1,40 @@
+﻿@model RekomendacjaViewModel
+
+<link rel="stylesheet" href="~/css/results.css" asp-append-version="true" />
+
+
+<div class="text-center my-5">
+    <h1 class="display-5">Oto Twoja idealna podróż:</h1>
+</div>
+
+<div class="row justify-content-center pb-5">
+    <div class="col-md-10 col-lg-8">
+        <div class="card">
+            <img src="@Model.ImageUrl" class="card-img-top" alt="Zdjęcie: @Model.Tytul">
+            <div class="card-body p-4 p-md-5">
+                <h2 class="card-title display-6">@Model.Tytul</h2>
+                <p class="lead text-muted mb-4">@Model.Opis</p>
+                <hr>
+
+                <div class="recommendation-section">
+                    <h5>Dlaczego to miejsce jest dla Ciebie?</h5>
+                    <p class="fst-italic">@Model.Uzasadnienie</p>
+                </div>
+
+                <div class="recommendation-section">
+                    <h5>Szczegóły dopasowane do Ciebie:</h5>
+                    <ul class="list-group mt-3">
+                        @foreach (var detal in Model.Szczegoly)
+                        {
+                            <li class="list-group-item">@detal</li>
+                        }
+                    </ul>
+                </div>
+
+                <div class="mt-5 text-center">
+                    <a asp-action="Index" class="btn btn-outline-primary">Zmień preferencje i szukaj ponownie</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
