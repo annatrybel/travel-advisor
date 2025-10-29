@@ -1,0 +1,106 @@
+﻿@model PreferencjeViewModel
+
+
+<link rel="stylesheet" href="~/css/preferencje.css" asp-append-version="true" />
+
+
+<div class="text-center pt-5 pb-4">
+    <h1 class="display-4">Znajdź swoją wymarzoną podróż!</h1>
+    <p class="lead">Odpowiedz na 5 pytań, a my znajdziemy dla Ciebie idealną rekomendację.</p>
+</div>
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8 col-lg-7">
+        <div class="card shadow-lg border-0">
+            <div class="card-body p-4 p-md-5">
+                <form asp-action="Index" method="post">
+
+                    <!-- Pytanie 1: Budżet -->
+                    <div class="mb-4 text-center">
+                        <label asp-for="BudzetPln" class="form-label fw-bold fs-5 mb-3">Krok 1/5: Jaki jest Twój maksymalny budżet na osobę?</label>
+                        <div id="budgetValue">@Model.BudzetPln PLN</div>
+                        <input asp-for="BudzetPln" type="range" class="form-range" min="500" max="20000" step="100" id="budgetRange">
+                        <span asp-validation-for="BudzetPln" class="text-danger d-block text-center"></span>
+                    </div>
+
+                    <!-- Pytanie 2: Długość wyjazdu -->
+                    <div class="mb-4">
+                        <label asp-for="Czas" class="form-label fw-bold fs-5">Krok 2/5: Jak długo ma trwać wyjazd?</label>
+                        <select asp-for="Czas" class="form-select form-select-lg">
+                            <option value="" selected disabled>-- Wybierz długość wyjazdu --</option>
+                            <option value="weekend">Weekend (1-3 dni)</option>
+                            <option value="tydzien">Tydzień (4-7 dni)</option>
+                            <option value="dwa_tygodnie">Dwa tygodnie (8-14 dni)</option>
+                        </select>
+                        <span asp-validation-for="Czas" class="text-danger"></span>
+                    </div>
+
+                    <!-- Pytanie 3: Styl podróży -->
+                    <div class="mb-4">
+                        <label asp-for="StylPodrozy" class="form-label fw-bold fs-5">Krok 3/5: Jaki jest główny cel Twojej podróży?</label>
+                        <select asp-for="StylPodrozy" class="form-select form-select-lg">
+                            <option value="" selected disabled>-- Wybierz cel podróży --</option>
+                            <option value="odpoczynek">Totalny odpoczynek i regeneracja</option>
+                            <option value="kultura">Odkrywanie kultury i historii</option>
+                            <option value="przygoda">Przygoda i aktywne spędzanie czasu</option>
+                            <option value="rozrywka">Rozrywka i życie nocne</option>
+                        </select>
+                        <span asp-validation-for="StylPodrozy" class="text-danger"></span>
+                    </div>
+
+                    <!-- Pytanie 4: Preferowane otoczenie -->
+                    <div class="mb-4">
+                        <label asp-for="Otoczenie" class="form-label fw-bold fs-5">Krok 4/5: Jakie otoczenie preferujesz?</label>
+                        <select asp-for="Otoczenie" class="form-select form-select-lg">
+                            <option value="" selected disabled>-- Wybierz preferowane otoczenie --</option>
+                            <option value="miasto">Tętniące życiem miasto</option>
+                            <option value="plaze">Słoneczne plaże i wybrzeże</option>
+                            <option value="natura">Spokojna natura (góry, lasy, jeziora)</option>
+                            <option value="egzotyka">Egzotyczne i odległe krajobrazy</option>
+                        </select>
+                        <span asp-validation-for="Otoczenie" class="text-danger"></span>
+                    </div>
+
+                    <!-- Pytanie 5: Skład grupy -->
+                    <div class="mb-4">
+                        <label asp-for="SkladGrupy" class="form-label fw-bold fs-5">Krok 5/5: Z kim podróżujesz?</label>
+                        <select asp-for="SkladGrupy" class="form-select form-select-lg">
+                            <option value="" selected disabled>-- Wybierz skład grupy --</option>
+                            <option value="solo">Solo</option>
+                            <option value="para">We dwoje (para)</option>
+                            <option value="rodzina">Z rodziną i dziećmi</option>
+                            <option value="znajomi">Z grupą znajomych</option>
+                        </select>
+                        <span asp-validation-for="SkladGrupy" class="text-danger"></span>
+                    </div>
+
+                    <div class="d-grid mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold">Znajdź podróż marzeń!</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const budgetRange = document.getElementById('budgetRange');
+        const budgetValue = document.getElementById('budgetValue');
+
+        function updateSliderBackground(slider) {
+            const percentage = ((slider.value - slider.min) / (slider.max - slider.min)) * 100;
+            const gradient = `linear-gradient(90deg, #0096c7 ${percentage}%, #e9ecef ${percentage}%)`;
+            slider.style.background = gradient;
+        }
+
+        budgetValue.textContent = budgetRange.value + ' PLN';
+        updateSliderBackground(budgetRange);
+
+        budgetRange.addEventListener('input', function() {
+            budgetValue.textContent = this.value + ' PLN';
+            updateSliderBackground(this);
+        });
+    </script>
+}
+
