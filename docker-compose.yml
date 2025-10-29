@@ -1,0 +1,6 @@
+services:
+  travel-advisor:
+    image: ${DOCKER_REGISTRY-}traveladvisor
+    build:
+      context: .
+      dockerfile: Travel-Advisor/Dockerfile
