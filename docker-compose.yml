@@ -30,7 +30,7 @@ services:
       - dev
     restart: unless-stopped
 
-  travel_advisor:
+  travel-advisor:
     depends_on:
       db:
         condition: service_healthy
