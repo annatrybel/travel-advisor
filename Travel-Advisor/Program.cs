@@ -11,11 +11,34 @@ builder.Services.AddDbContext<TravelAdvisorContext>(options =>
 
 builder.Services.AddHttpContextAccessor();
 
+builder.Services.AddHttpClient(); 
+builder.Services.AddTransient<DestinationSeeder>();
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
+
+async Task SeedDatabaseAsync(IHost appHost)
+{
+    using (var scope = appHost.Services.CreateScope())
+    {
+        var services = scope.ServiceProvider;
+        try
+        {
+            var destinationSeeder = services.GetRequiredService<DestinationSeeder>();
+            await destinationSeeder.SeedDestinationsAsync();
+        }
+        catch (Exception ex)
+        {
+            var logger = services.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "Wyst¹pi³ b³¹d podczas seedingu bazy danych.");
+        }
+    }
+}
+
+await SeedDatabaseAsync(app);
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
