@@ -1,6 +1,8 @@
-﻿using System.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json.Linq;
+using System.Diagnostics;
+using System.Net.Http.Headers;
 using Travel_Advisor.Models;
 
 namespace Travel_Advisor.Controllers
@@ -9,11 +11,15 @@ namespace Travel_Advisor.Controllers
     {
         private readonly ILogger<HomeController> _logger;
         private readonly TravelAdvisorContext _context;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _configuration;
 
-        public HomeController(ILogger<HomeController> logger, TravelAdvisorContext context)
+        public HomeController(ILogger<HomeController> logger, TravelAdvisorContext context, IHttpClientFactory httpClientFactory, IConfiguration configuration)
         {
             _logger = logger;
             _context = context;
+            _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
         }
 
         public IActionResult Index()
@@ -62,19 +68,19 @@ namespace Travel_Advisor.Controllers
             {
                 var destination = match.Destination;
 
-                string dynamicImageQuery = GenerateDynamicUnsplashQuery(destination, model);
+                string imageUrl = await GetUnsplashImageUrlAsync(destination, model);
 
                 var rekomendacja = new RekomendacjaViewModel
                 {
                     Tytul = $"{destination.LocationName}, {destination.CountryName}",
                     Opis = destination.Descriptor,
-                    ImageUrl = $"https://source.unsplash.com/1600x900/?{Uri.EscapeDataString(dynamicImageQuery)}",
+                    ImageUrl = imageUrl, 
                     Uzasadnienie = $"To miejsce dobrze pasuje do Twojego stylu podróży ('{model.StylPodrozy}') i preferencji otoczenia ('{model.Otoczenie}').",
                     Szczegoly = new List<string>
                     {
                         $"Długość wyjazdu: Idealna na {model.Czas.Replace("_", " ")}.",
                         $"Idealne dla podróżujących: {model.SkladGrupy}.",
-                        $"Budżet: Mieści się w Twoim zakresie.",
+                        "Budżet: Mieści się w Twoim zakresie.",
                     }
                 };
                 rekomendacje.Add(rekomendacja);
@@ -83,9 +89,18 @@ namespace Travel_Advisor.Controllers
             return View("Results", rekomendacje);
         }
 
-         private string GenerateDynamicUnsplashQuery(Destination destination, PreferencjeViewModel preferences)
-         {
-            var query = destination.CountryName ?? destination.LocationName;
+        private async Task<string> GetUnsplashImageUrlAsync(Destination destination, PreferencjeViewModel preferences)
+        {
+            string unsplashApiKey = _configuration["ApiKeys:Unsplash"];
+            string fallbackImageUrl = "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688";
+
+            if (string.IsNullOrEmpty(unsplashApiKey))
+            {
+                _logger.LogError("Klucz API Unsplash nie jest skonfigurowany w appsettings.json");
+                return fallbackImageUrl;
+            }
+
+            var query = $"{destination.LocationNameEn}, {destination.CountryNameEn}";
 
             switch (preferences.StylPodrozy)
             {
@@ -94,7 +109,6 @@ namespace Travel_Advisor.Controllers
                 case "przygoda": query += ", adventure, hiking, wild, action"; break;
                 case "rozrywka": query += ", entertainment, city life, fun"; break;
             }
-
             switch (preferences.Otoczenie)
             {
                 case "plaze": query += ", beach, sea, coast, sunny"; break;
@@ -102,7 +116,40 @@ namespace Travel_Advisor.Controllers
                 case "natura": query += ", nature, landscape, mountains, forest"; break;
                 case "egzotyka": query += ", exotic, tropical, jungle"; break;
             }
-            return query;
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Client-ID", unsplashApiKey);
+
+                var requestUrl = $"https://api.unsplash.com/search/photos?query={Uri.EscapeDataString(query)}&per_page=1&orientation=landscape";
+
+                _logger.LogInformation($"[UNSPLASH] Zapytanie API: {requestUrl}");
+
+                var response = await client.GetAsync(requestUrl);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var content = await response.Content.ReadAsStringAsync();
+                    var json = JObject.Parse(content);
+
+                    var firstResult = json["results"]?.FirstOrDefault();
+                    if (firstResult != null)
+                    {
+                        return firstResult["urls"]?["regular"]?.ToString() ?? fallbackImageUrl;
+                    }
+                }
+                else
+                {
+                    _logger.LogError($"Błąd zapytania do API Unsplash: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Wyjątek podczas pobierania obrazka z Unsplash.");
+            }
+
+            return fallbackImageUrl; 
         }
 
 
