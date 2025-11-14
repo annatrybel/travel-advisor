@@ -6,6 +6,7 @@ namespace Travel_Advisor.Models
     {
         public int Id { get; set; }
         public string LocationName { get; set; }
+        public string LocationNameEn { get; set; }
         public string CountryName { get; set; }
         public string TravelStyles { get; set; }
         public string Environments { get; set; }
