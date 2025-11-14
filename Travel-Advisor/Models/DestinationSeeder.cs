@@ -102,91 +102,57 @@ namespace Travel_Advisor.Models
         {
             var geoapifyApiKey = _configuration["ApiKeys:Geoapify"];
             var potentialDestinations = new List<Destination>();
-            var random = new Random();
-
-            if (string.IsNullOrEmpty(geoapifyApiKey)) return potentialDestinations;
-
             var client = _httpClientFactory.CreateClient();
-            var queryParams = new List<string>
+
+            Func<string, string> buildUrl = (lang) =>
             {
-                $"categories={Uri.EscapeDataString(categories)}",
-                "limit=20",
-                $"apiKey={geoapifyApiKey}"
+                var queryParams = new List<string> { $"categories={Uri.EscapeDataString(categories)}", "limit=20", $"apiKey={geoapifyApiKey}", $"lang={lang}" };
+                if (categories.Contains("natural") || categories.Contains("park") || categories.Contains("beach"))
+                    queryParams.Add($"filter={Uri.EscapeDataString($"circle:{lon.ToString(CultureInfo.InvariantCulture)},{lat.ToString(CultureInfo.InvariantCulture)},{radius}")}");
+                else
+                    queryParams.Add($"bias={Uri.EscapeDataString($"proximity:{lon.ToString(CultureInfo.InvariantCulture)},{lat.ToString(CultureInfo.InvariantCulture)}")}");
+                return "https://api.geoapify.com/v2/places?" + string.Join("&", queryParams);
             };
-
-            if (categories.Contains("natural", StringComparison.OrdinalIgnoreCase)
-               || categories.Contains("leisure.park", StringComparison.OrdinalIgnoreCase)
-               || categories.Contains("beach", StringComparison.OrdinalIgnoreCase))
-            {
-                var filterValue = $"circle:{lon.ToString(CultureInfo.InvariantCulture)},{lat.ToString(CultureInfo.InvariantCulture)},{radius}";
-                queryParams.Add($"filter={Uri.EscapeDataString(filterValue)}");
-                queryParams.Add("lang=pl");
-            }
-            else
-            {
-                var biasValue = $"proximity:{lon.ToString(CultureInfo.InvariantCulture)},{lat.ToString(CultureInfo.InvariantCulture)}";
-                queryParams.Add($"bias={Uri.EscapeDataString(biasValue)}");
-                queryParams.Add("lang=pl");
-            }
-
-
-            string url = "https://api.geoapify.com/v2/places?" + string.Join("&", queryParams);
-
 
             try
             {
-                var response = await client.GetAsync(url);
+                var responsePlTask = client.GetAsync(buildUrl("pl"));
+                var responseEnTask = client.GetAsync(buildUrl("en"));
+                await Task.WhenAll(responsePlTask, responseEnTask);
 
-                if (response.IsSuccessStatusCode)
+                if (!responsePlTask.Result.IsSuccessStatusCode || !responseEnTask.Result.IsSuccessStatusCode) return potentialDestinations;
+
+                var jsonPl = JObject.Parse(await responsePlTask.Result.Content.ReadAsStringAsync());
+                var jsonEn = JObject.Parse(await responseEnTask.Result.Content.ReadAsStringAsync());
+
+                var featuresEn = jsonEn["features"]?.ToList() ?? new List<JToken>();
+                var enDict = featuresEn.ToDictionary(
+                    f => $"{((double)f["properties"]["lon"]):F4},{((double)f["properties"]["lat"]):F4}",
+                    f => f["properties"]
+                );
+
+                foreach (var feature in jsonPl["features"] ?? new JArray())
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var json = JObject.Parse(content);
+                    var propsPl = feature["properties"];
+                    string key = $"{((double)propsPl["lon"]):F4},{((double)propsPl["lat"]):F4}";
 
-                    foreach (var feature in json["features"])
+                    if (enDict.TryGetValue(key, out var propsEn))
                     {
-                        var props = feature["properties"];
-                        List<string> travelStyles;
-                        List<string> environments;
-                        List<string> durations;
-                        List<string> groupTypes;
-
-                        if (categories.Contains("beach"))
-                        {
-                            travelStyles = new List<string> { "odpoczynek" };
-                            environments = new List<string> { "plaze" };
-                            durations = new List<string> { "tydzien", "dwa_tygodnie" }; 
-                            groupTypes = new List<string> { "para", "rodzina", "znajomi" };
-                        }
-                        else if (categories.Contains("sights"))
-                        {
-                            travelStyles = new List<string> { "kultura", "rozrywka" };
-                            environments = new List<string> { "miasto" };
-                            durations = new List<string> { "weekend", "tydzien" };
-                            groupTypes = new List<string> { "solo", "para", "znajomi" };
-                        }
-                        else if (categories.Contains("park") || categories.Contains("natural"))
-                        {
-                            travelStyles = new List<string> { "przygoda", "odpoczynek" }; 
-                            environments = new List<string> { "natura" }; durations = new List<string> { "weekend", "tydzien", "dwa_tygodnie" }; 
-                            groupTypes = new List<string> { "solo", "para", "rodzina", "znajomi" };
-                        }
-                        else
-                        {
-                            travelStyles = new List<string>(); environments = new List<string>(); durations = new List<string>(); groupTypes = new List<string>();
-                        }
-
                         var newDest = new Destination
                         {
-                            LocationName = props?["name"]?.ToString() ?? props?["city"]?.ToString(),
-                            CountryName = props?["country"]?.ToString(),
-                            Descriptor = $"Odkryj {props?["name"]?.ToString() ?? "to miejsce"} w kraju {props?["country"]?.ToString()}",
-                            UnsplashQuery = $"{props?["name"]?.ToString()}, {props?["country"]?.ToString()} landmark",
+                            LocationName = propsPl["city"]?.ToString() ?? propsPl["name"]?.ToString(),
+                            CountryName = propsPl["country"]?.ToString(),
 
-                            TravelStyles = string.Join(",", travelStyles),
-                            Environments = string.Join(",", environments),
-                            Durations = string.Join(",", durations),
-                            GroupTypes = string.Join(",", groupTypes)
+                            LocationNameEn = propsEn["city"]?.ToString() ?? propsEn["name"]?.ToString(),
+                            CountryNameEn = propsEn["country"]?.ToString(),
+
+                            Descriptor = $"Odkryj {propsPl["city"]?.ToString() ?? propsPl["name"]?.ToString()} w kraju {propsPl["country"]?.ToString()}",
+                            UnsplashQuery = $"{propsEn["city"]?.ToString() ?? propsEn["name"]?.ToString()}, {propsEn["country"]?.ToString()}"
                         };
+
+                        List<string> travelStyles, environments, durations, groupTypes;
+                        if (categories.Contains("beach")) { travelStyles = new List<string> { "odpoczynek" }; environments = new List<string> { "plaze" }; durations = new List<string> { "tydzien", "dwa_tygodnie" }; groupTypes = new List<string> { "para", "rodzina", "znajomi" }; } else if (categories.Contains("sights")) { travelStyles = new List<string> { "kultura", "rozrywka" }; environments = new List<string> { "miasto" }; durations = new List<string> { "weekend", "tydzien" }; groupTypes = new List<string> { "solo", "para", "znajomi" }; } else { travelStyles = new List<string> { "przygoda", "odpoczynek" }; environments = new List<string> { "natura" }; durations = new List<string> { "weekend", "tydzien", "dwa_tygodnie" }; groupTypes = new List<string> { "solo", "para", "rodzina", "znajomi" }; }
+                        newDest.TravelStyles = string.Join(",", travelStyles); newDest.Environments = string.Join(",", environments); newDest.Durations = string.Join(",", durations); newDest.GroupTypes = string.Join(",", groupTypes);
 
                         if (!string.IsNullOrEmpty(newDest.LocationName) && !string.IsNullOrEmpty(newDest.CountryName))
                         {
@@ -195,10 +161,7 @@ namespace Travel_Advisor.Models
                     }
                 }
             }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"Błąd podczas generowania destynacji z Geoapify: {ex.Message}");
-            }
+            catch (Exception ex) { Debug.WriteLine($"Błąd Geoapify: {ex.Message}"); }
 
             return potentialDestinations.GroupBy(d => d.LocationName).Select(g => g.First()).ToList();
         }

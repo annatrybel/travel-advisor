@@ -8,6 +8,7 @@ namespace Travel_Advisor.Models
         public string LocationName { get; set; }
         public string LocationNameEn { get; set; }
         public string CountryName { get; set; }
+        public string CountryNameEn { get; set; }
         public string TravelStyles { get; set; }
         public string Environments { get; set; }
         public string Descriptor { get; set; }
