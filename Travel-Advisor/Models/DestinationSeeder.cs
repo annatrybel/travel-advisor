@@ -152,15 +152,23 @@ namespace Travel_Advisor.Models
 
                         if (categories.Contains("beach"))
                         {
-                            travelStyles = new List<string> { "odpoczynek" }; environments = new List<string> { "plaze" }; durations = new List<string> { "tydzien", "dwa_tygodnie" }; groupTypes = new List<string> { "para", "rodzina", "znajomi" };
+                            travelStyles = new List<string> { "odpoczynek" };
+                            environments = new List<string> { "plaze" };
+                            durations = new List<string> { "tydzien", "dwa_tygodnie" }; 
+                            groupTypes = new List<string> { "para", "rodzina", "znajomi" };
                         }
                         else if (categories.Contains("sights"))
                         {
-                            travelStyles = new List<string> { "kultura", "rozrywka" }; environments = new List<string> { "miasto" }; durations = new List<string> { "weekend", "tydzien" }; groupTypes = new List<string> { "solo", "para", "znajomi" };
+                            travelStyles = new List<string> { "kultura", "rozrywka" };
+                            environments = new List<string> { "miasto" };
+                            durations = new List<string> { "weekend", "tydzien" };
+                            groupTypes = new List<string> { "solo", "para", "znajomi" };
                         }
                         else if (categories.Contains("park") || categories.Contains("natural"))
                         {
-                            travelStyles = new List<string> { "przygoda", "odpoczynek" }; environments = new List<string> { "natura" }; durations = new List<string> { "weekend", "tydzien", "dwa_tygodnie" }; groupTypes = new List<string> { "solo", "para", "rodzina", "znajomi" };
+                            travelStyles = new List<string> { "przygoda", "odpoczynek" }; 
+                            environments = new List<string> { "natura" }; durations = new List<string> { "weekend", "tydzien", "dwa_tygodnie" }; 
+                            groupTypes = new List<string> { "solo", "para", "rodzina", "znajomi" };
                         }
                         else
                         {
