@@ -29,22 +29,25 @@ namespace Travel_Advisor.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Index(PreferencjeViewModel model)
+        public async Task<IActionResult> GenerateRecommendations(PreferencjeViewModel model)
         {
             if (!ModelState.IsValid)
             {
                 return View(model);
             }
 
-            var destinations = await _context.Destinations.ToListAsync();
+            var allDestinations = await _context.Destinations.ToListAsync();
 
-            if (!destinations.Any())
+            var affordableDestinations = allDestinations.Where(d => d.MinBudget <= model.BudzetPln).ToList();
+
+
+            if (!allDestinations.Any())
             {
-                ModelState.AddModelError("", "Brak dostępnych destynacji w bazie. Proszę uruchomić seeder.");
+                ModelState.AddModelError("", "Brak dostępnych destynacji w bazie dla podanego budżetu.");
                 return View(model);
             }
 
-            var scoredDestinations = destinations.Select(dest => new
+            var scoredDestinations = allDestinations.Select(dest => new
             {
                 Destination = dest,
                 Score = CalculateMatchScore(dest, model)
