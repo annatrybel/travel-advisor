@@ -15,5 +15,6 @@ namespace Travel_Advisor.Models
         public string UnsplashQuery { get; set; }
         public string Durations { get; set; }
         public string GroupTypes { get; set; }
+        public int MinBudget { get; set; }
     }
 }

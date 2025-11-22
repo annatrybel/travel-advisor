@@ -11,6 +11,7 @@ namespace Travel_Advisor.Models
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
         private readonly TravelAdvisorContext _context;
+        private static readonly Random _random = new Random();
 
         public DestinationSeeder(IHttpClientFactory httpClientFactory, IConfiguration configuration, TravelAdvisorContext context)
         {
@@ -151,8 +152,48 @@ namespace Travel_Advisor.Models
                         };
 
                         List<string> travelStyles, environments, durations, groupTypes;
-                        if (categories.Contains("beach")) { travelStyles = new List<string> { "odpoczynek" }; environments = new List<string> { "plaze" }; durations = new List<string> { "tydzien", "dwa_tygodnie" }; groupTypes = new List<string> { "para", "rodzina", "znajomi" }; } else if (categories.Contains("sights")) { travelStyles = new List<string> { "kultura", "rozrywka" }; environments = new List<string> { "miasto" }; durations = new List<string> { "weekend", "tydzien" }; groupTypes = new List<string> { "solo", "para", "znajomi" }; } else { travelStyles = new List<string> { "przygoda", "odpoczynek" }; environments = new List<string> { "natura" }; durations = new List<string> { "weekend", "tydzien", "dwa_tygodnie" }; groupTypes = new List<string> { "solo", "para", "rodzina", "znajomi" }; }
-                        newDest.TravelStyles = string.Join(",", travelStyles); newDest.Environments = string.Join(",", environments); newDest.Durations = string.Join(",", durations); newDest.GroupTypes = string.Join(",", groupTypes);
+                        if (categories.Contains("beach")) {
+                            travelStyles = new List<string> { "odpoczynek" };
+                            environments = new List<string> { "plaze" };
+                            durations = new List<string> { "tydzien", "dwa_tygodnie" }; 
+                            groupTypes = new List<string> { "para", "rodzina", "znajomi" };
+                        } else if (categories.Contains("sights")) {
+                            travelStyles = new List<string> { "kultura", "rozrywka" }; 
+                            environments = new List<string> { "miasto" };
+                            durations = new List<string> { "weekend", "tydzien" };
+                            groupTypes = new List<string> { "solo", "para", "znajomi" };
+                        } else { 
+                            travelStyles = new List<string> { "przygoda", "odpoczynek" };
+                            environments = new List<string> { "natura" };
+                            durations = new List<string> { "weekend", "tydzien", "dwa_tygodnie" }; 
+                            groupTypes = new List<string> { "solo", "para", "rodzina", "znajomi" };
+                        }
+                        newDest.TravelStyles = string.Join(",", travelStyles); 
+                        newDest.Environments = string.Join(",", environments);
+                        newDest.Durations = string.Join(",", durations);
+                        newDest.GroupTypes = string.Join(",", groupTypes);
+
+                        int minBudget, maxBudget;
+
+                        if (categories.Contains("beach"))
+                        {
+                            minBudget = 3000;
+                            maxBudget = 15000;
+                        }
+                        else if (categories.Contains("sights"))
+                        {
+                            minBudget = 1000;
+                            maxBudget = 8000;
+                        }
+                        else 
+                        {
+                            minBudget = 1500;
+                            maxBudget = 12000;
+                        }
+
+                        int randomBudget = _random.Next(minBudget, maxBudget);
+                        newDest.MinBudget = (int)(Math.Round(randomBudget / 100.0) * 100);
+
 
                         if (!string.IsNullOrEmpty(newDest.LocationName) && !string.IsNullOrEmpty(newDest.CountryName))
                         {
